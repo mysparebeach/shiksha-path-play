@@ -1,13 +1,36 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+// Shiksha Bandhu - Main App Component
+import { useState } from 'react';
+import Home from './Home';
+import SubjectLessons from './SubjectLessons';
+
+type AppView = 'home' | 'subject-lessons';
 
 const Index = () => {
+  const [currentView, setCurrentView] = useState<AppView>('home');
+  const [selectedSubject, setSelectedSubject] = useState<string>('');
+
+  const handleSubjectSelect = (subjectId: string) => {
+    setSelectedSubject(subjectId);
+    setCurrentView('subject-lessons');
+  };
+
+  const handleBackToHome = () => {
+    setCurrentView('home');
+    setSelectedSubject('');
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
+    <>
+      {currentView === 'home' && (
+        <Home onSubjectSelect={handleSubjectSelect} />
+      )}
+      {currentView === 'subject-lessons' && selectedSubject && (
+        <SubjectLessons 
+          subjectId={selectedSubject} 
+          onBack={handleBackToHome}
+        />
+      )}
+    </>
   );
 };
 
