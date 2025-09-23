@@ -1,5 +1,6 @@
 // Home page with subject selection and user overview
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useUserProgress } from '@/hooks/useUserProgress';
 import { subjects } from '@/data/subjects';
 import GameHeader from '@/components/GameHeader';
@@ -7,15 +8,18 @@ import SubjectCard from '@/components/SubjectCard';
 import AchievementCard from '@/components/AchievementCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Crown, Trophy, Target, TrendingUp } from 'lucide-react';
+import { Crown, Trophy, Target, TrendingUp, LogOut } from 'lucide-react';
 
 interface HomeProps {
   onSubjectSelect: (subjectId: string) => void;
 }
 
 export default function Home({ onSubjectSelect }: HomeProps) {
+  const { user: authUser, logout } = useAuth();
   const { user, unlockedAchievements } = useUserProgress();
   const [selectedTab, setSelectedTab] = useState('subjects');
+
+  if (!authUser) return null;
 
   const recentAchievements = unlockedAchievements
     .sort((a, b) => new Date(b.unlockedAt || '').getTime() - new Date(a.unlockedAt || '').getTime())
@@ -27,16 +31,27 @@ export default function Home({ onSubjectSelect }: HomeProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <GameHeader user={user} />
+      <div className="flex justify-between items-center p-4">
+        <GameHeader user={user} />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={logout}
+          className="border-primary/20 hover:bg-primary/10"
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Logout
+        </Button>
+      </div>
       
       <main className="max-w-6xl mx-auto px-4 py-8">
         {/* Welcome section */}
         <div className="mb-8 text-center">
           <h2 className="text-3xl font-bold text-foreground mb-2">
-            Welcome back, {user.name}! 🎓
+            Welcome back, {authUser.name}! 🎓
           </h2>
           <p className="text-muted-foreground">
-            Continue your CHSE preparation journey. You're doing great!
+            Grade {authUser.grade} CHSE preparation journey. You're doing great!
           </p>
         </div>
 
