@@ -8,14 +8,14 @@ import SubjectCard from '@/components/SubjectCard';
 import AchievementCard from '@/components/AchievementCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Crown, Trophy, Target, TrendingUp, LogOut } from 'lucide-react';
+import { Crown, Trophy, Target, TrendingUp } from 'lucide-react';
 
 interface HomeProps {
   onSubjectSelect: (subjectId: string) => void;
 }
 
 export default function Home({ onSubjectSelect }: HomeProps) {
-  const { user: authUser, logout } = useAuth();
+  const { user: authUser } = useAuth();
   const { user, unlockedAchievements } = useUserProgress();
   const [selectedTab, setSelectedTab] = useState('subjects');
 
@@ -31,18 +31,7 @@ export default function Home({ onSubjectSelect }: HomeProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="flex justify-between items-center p-4">
-        <GameHeader user={user} />
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={logout}
-          className="border-primary/20 hover:bg-primary/10"
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Logout
-        </Button>
-      </div>
+      <GameHeader user={user} />
       
       <main className="max-w-6xl mx-auto px-4 py-8">
         {/* Welcome section */}
