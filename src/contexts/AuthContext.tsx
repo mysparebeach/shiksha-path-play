@@ -4,14 +4,16 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string;
-  grade: 11 | 12;
+  role: 'student' | 'teacher';
+  grade?: 11 | 12; // Only for students
+  subject?: string; // Only for teachers
   avatar?: string;
 }
 
 interface AuthContextType {
   user: AuthUser | null;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name: string, grade: 11 | 12) => Promise<void>;
+  signup: (email: string, password: string, name: string, role: 'student' | 'teacher', grade?: 11 | 12, subject?: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -39,11 +41,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Mock login - simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Mock user data
+    // Mock user data - assuming student for existing login
     const mockUser: AuthUser = {
       id: '1',
       email,
       name: email.split('@')[0],
+      role: 'student',
       grade: 11, // Default grade, in real app this would come from database
     };
     
@@ -52,7 +55,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(false);
   };
 
-  const signup = async (email: string, password: string, name: string, grade: 11 | 12) => {
+  const signup = async (email: string, password: string, name: string, role: 'student' | 'teacher', grade?: 11 | 12, subject?: string) => {
     setIsLoading(true);
     // Mock signup - simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -61,7 +64,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       id: Date.now().toString(),
       email,
       name,
-      grade,
+      role,
+      ...(role === 'student' && { grade }),
+      ...(role === 'teacher' && { subject }),
     };
     
     setUser(newUser);

@@ -2,7 +2,8 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Auth from './Auth';
-import Home from './Home';
+import StudentDashboard from './StudentDashboard';
+import TeacherDashboard from './TeacherDashboard';
 import SubjectLessons from './SubjectLessons';
 
 type AppView = 'home' | 'subject-lessons';
@@ -29,10 +30,13 @@ const Index = () => {
 
   return (
     <>
-      {currentView === 'home' && (
-        <Home onSubjectSelect={handleSubjectSelect} />
+      {currentView === 'home' && user.role === 'student' && (
+        <StudentDashboard onSubjectSelect={handleSubjectSelect} />
       )}
-      {currentView === 'subject-lessons' && selectedSubject && (
+      {currentView === 'home' && user.role === 'teacher' && (
+        <TeacherDashboard />
+      )}
+      {currentView === 'subject-lessons' && selectedSubject && user.role === 'student' && (
         <SubjectLessons 
           subjectId={selectedSubject} 
           onBack={handleBackToHome}

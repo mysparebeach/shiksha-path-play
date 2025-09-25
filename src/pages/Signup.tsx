@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { BookOpen, GraduationCap } from 'lucide-react';
+import { BookOpen, GraduationCap, Users } from 'lucide-react';
 
 interface SignupProps {
   onSwitchToLogin: () => void;
@@ -16,17 +16,23 @@ export default function Signup({ onSwitchToLogin }: SignupProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [role, setRole] = useState<'student' | 'teacher'>('student');
   const [grade, setGrade] = useState<'11' | '12'>('11');
+  const [subject, setSubject] = useState('');
   const { signup, isLoading } = useAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await signup(email, password, name, parseInt(grade) as 11 | 12);
+      if (role === 'student') {
+        await signup(email, password, name, role, parseInt(grade) as 11 | 12);
+      } else {
+        await signup(email, password, name, role, undefined, subject);
+      }
       toast({
         title: "Account created!",
-        description: "Welcome to Shiksha Bandhu. Let's start learning!",
+        description: `Welcome to Shiksha Bandhu, ${role}. Let's start learning!`,
       });
     } catch (error) {
       toast({
@@ -90,22 +96,56 @@ export default function Signup({ onSwitchToLogin }: SignupProps) {
               />
             </div>
             <div className="space-y-3">
-              <Label>Select your Grade</Label>
+              <Label>I am a</Label>
               <RadioGroup
-                value={grade}
-                onValueChange={(value) => setGrade(value as '11' | '12')}
+                value={role}
+                onValueChange={(value) => setRole(value as 'student' | 'teacher')}
                 className="flex space-x-6"
               >
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="11" id="grade11" />
-                  <Label htmlFor="grade11" className="font-normal">Grade 11</Label>
+                  <RadioGroupItem value="student" id="student" />
+                  <Label htmlFor="student" className="font-normal">Student</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="12" id="grade12" />
-                  <Label htmlFor="grade12" className="font-normal">Grade 12</Label>
+                  <RadioGroupItem value="teacher" id="teacher" />
+                  <Label htmlFor="teacher" className="font-normal">Teacher</Label>
                 </div>
               </RadioGroup>
             </div>
+
+            {role === 'student' && (
+              <div className="space-y-3">
+                <Label>Select your Grade</Label>
+                <RadioGroup
+                  value={grade}
+                  onValueChange={(value) => setGrade(value as '11' | '12')}
+                  className="flex space-x-6"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="11" id="grade11" />
+                    <Label htmlFor="grade11" className="font-normal">Grade 11</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="12" id="grade12" />
+                    <Label htmlFor="grade12" className="font-normal">Grade 12</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            )}
+
+            {role === 'teacher' && (
+              <div className="space-y-2">
+                <Label htmlFor="subject">Subject</Label>
+                <Input
+                  id="subject"
+                  type="text"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder="e.g., Physics, Mathematics, Chemistry"
+                  required
+                />
+              </div>
+            )}
             <Button 
               type="submit" 
               className="w-full"
