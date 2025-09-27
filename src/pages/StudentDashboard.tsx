@@ -1,14 +1,13 @@
 // Student Dashboard - existing Home functionality
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useUserProgress } from '@/hooks/useUserProgress';
-import { subjects } from '@/data/subjects';
+import { useSupabaseLessons, useStudentProgress } from '@/hooks/useSupabaseLessons';
 import GameHeader from '@/components/GameHeader';
-import SubjectCard from '@/components/SubjectCard';
 import AchievementCard from '@/components/AchievementCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Crown, Trophy, Target, TrendingUp, LogOut } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Crown, Trophy, Target, TrendingUp, LogOut, BookOpen, Play, CheckCircle } from 'lucide-react';
 
 interface StudentDashboardProps {
   onSubjectSelect: (subjectId: string) => void;
@@ -16,23 +15,38 @@ interface StudentDashboardProps {
 
 export default function StudentDashboard({ onSubjectSelect }: StudentDashboardProps) {
   const { user: authUser, logout } = useAuth();
-  const { user, unlockedAchievements } = useUserProgress();
+  const { lessons, loading: lessonsLoading } = useSupabaseLessons(authUser?.grade || 11);
+  const { progress, loading: progressLoading } = useStudentProgress(authUser?.id || '');
   const [selectedTab, setSelectedTab] = useState('subjects');
 
   if (!authUser || authUser.role !== 'student') return null;
 
-  const recentAchievements = unlockedAchievements
-    .sort((a, b) => new Date(b.unlockedAt || '').getTime() - new Date(a.unlockedAt || '').getTime())
-    .slice(0, 3);
+  const completedLessons = progress.filter(p => p.is_completed);
+  const totalXP = completedLessons.reduce((sum, lesson) => {
+    const lessonData = lessons.find(l => l.id === lesson.lesson_id);
+    return sum + (lessonData?.xp_reward || 0);
+  }, 0);
+  const userLevel = Math.floor(totalXP / 1000) + 1;
+  const xpForNextLevel = ((userLevel) * 1000) - totalXP;
 
-  const totalLessonsCompleted = user.completedLessons.length;
-  const userLevel = Math.floor(user.totalXP / 1000) + 1;
-  const xpForNextLevel = ((userLevel) * 1000) - user.totalXP;
+  // Group lessons by subject
+  const lessonsBySubject = lessons.reduce((acc, lesson) => {
+    if (!acc[lesson.subject]) {
+      acc[lesson.subject] = [];
+    }
+    acc[lesson.subject].push(lesson);
+    return acc;
+  }, {} as Record<string, typeof lessons>);
 
   return (
     <div className="min-h-screen bg-background">
       <div className="flex justify-between items-center p-4">
-        <GameHeader user={user} />
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-foreground">Shiksha Bandhu</h1>
+          <div className="text-sm text-muted-foreground">
+            {totalXP} XP • Level {userLevel}
+          </div>
+        </div>
         <Button
           variant="outline"
           size="sm"
@@ -61,7 +75,7 @@ export default function StudentDashboard({ onSubjectSelect }: StudentDashboardPr
             <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary-glow rounded-full flex items-center justify-center mx-auto mb-3">
               <Trophy className="w-6 h-6 text-primary-foreground" />
             </div>
-            <h3 className="font-bold text-lg text-foreground">{user.totalXP.toLocaleString()}</h3>
+            <h3 className="font-bold text-lg text-foreground">{totalXP.toLocaleString()}</h3>
             <p className="text-sm text-muted-foreground">Total XP</p>
           </div>
 
@@ -69,7 +83,7 @@ export default function StudentDashboard({ onSubjectSelect }: StudentDashboardPr
             <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center mx-auto mb-3">
               <Crown className="w-6 h-6 text-white" />
             </div>
-            <h3 className="font-bold text-lg text-foreground">{user.currentStreak}</h3>
+            <h3 className="font-bold text-lg text-foreground">0</h3>
             <p className="text-sm text-muted-foreground">Day Streak</p>
           </div>
 
@@ -77,7 +91,7 @@ export default function StudentDashboard({ onSubjectSelect }: StudentDashboardPr
             <div className="w-12 h-12 bg-gradient-to-br from-accent to-accent-glow rounded-full flex items-center justify-center mx-auto mb-3">
               <Target className="w-6 h-6 text-accent-foreground" />
             </div>
-            <h3 className="font-bold text-lg text-foreground">{totalLessonsCompleted}</h3>
+            <h3 className="font-bold text-lg text-foreground">{completedLessons.length}</h3>
             <p className="text-sm text-muted-foreground">Lessons Done</p>
           </div>
 
@@ -99,18 +113,61 @@ export default function StudentDashboard({ onSubjectSelect }: StudentDashboardPr
           </TabsList>
 
           <TabsContent value="subjects" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {subjects.map((subject) => (
-                <SubjectCard
-                  key={subject.id}
-                  subject={subject}
-                  onClick={() => onSubjectSelect(subject.id)}
-                />
-              ))}
-            </div>
+            {lessonsLoading ? (
+              <div className="text-center py-8">Loading lessons...</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Object.entries(lessonsBySubject).map(([subject, subjectLessons]) => {
+                  const subjectProgress = progress.filter(p => 
+                    subjectLessons.some(l => l.id === p.lesson_id)
+                  );
+                  const completedCount = subjectProgress.filter(p => p.is_completed).length;
+                  const totalCount = subjectLessons.length;
+                  
+                  return (
+                    <Card 
+                      key={subject} 
+                      className="cursor-pointer hover:shadow-lg transition-shadow"
+                      onClick={() => onSubjectSelect(subject.toLowerCase())}
+                    >
+                      <CardHeader>
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary-glow rounded-lg flex items-center justify-center">
+                            <BookOpen className="w-6 h-6 text-primary-foreground" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-lg">{subject}</CardTitle>
+                            <CardDescription>
+                              {completedCount}/{totalCount} lessons completed
+                            </CardDescription>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="w-full bg-muted rounded-full h-2 mb-4">
+                          <div 
+                            className="bg-primary h-2 rounded-full transition-all duration-300" 
+                            style={{ width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">
+                            {subjectLessons.reduce((sum, lesson) => sum + lesson.xp_reward, 0)} XP available
+                          </span>
+                          <div className="flex gap-1">
+                            {completedCount > 0 && <CheckCircle className="w-4 h-4 text-success" />}
+                            <Play className="w-4 h-4 text-primary" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
             
             {/* Quick start suggestion */}
-            {totalLessonsCompleted === 0 && (
+            {completedLessons.length === 0 && !lessonsLoading && (
               <div className="mt-8 p-6 bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl border border-primary/20">
                 <h3 className="font-bold text-lg text-foreground mb-2">🚀 Ready to start learning?</h3>
                 <p className="text-muted-foreground mb-4">
@@ -135,25 +192,14 @@ export default function StudentDashboard({ onSubjectSelect }: StudentDashboardPr
           </TabsContent>
 
           <TabsContent value="achievements" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {unlockedAchievements.length > 0 ? (
-                unlockedAchievements.map((achievement) => (
-                  <AchievementCard
-                    key={achievement.id}
-                    achievement={achievement}
-                  />
-                ))
-              ) : (
-                <div className="col-span-full text-center py-12">
-                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Trophy className="w-8 h-8 text-muted-foreground" />
-                  </div>
-                  <h3 className="font-bold text-lg text-foreground mb-2">No achievements yet</h3>
-                  <p className="text-muted-foreground">
-                    Complete your first lesson to unlock your first achievement!
-                  </p>
-                </div>
-              )}
+            <div className="col-span-full text-center py-12">
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trophy className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <h3 className="font-bold text-lg text-foreground mb-2">Achievements Coming Soon!</h3>
+              <p className="text-muted-foreground">
+                Complete lessons to unlock achievements and badges. This feature will be available soon.
+              </p>
             </div>
           </TabsContent>
 

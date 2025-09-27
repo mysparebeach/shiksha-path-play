@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import type { User } from '@supabase/supabase-js';
 
 export interface AuthUser {
   id: string;
@@ -34,57 +36,92 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
-    // Mock login - simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Mock user data - assuming student for existing login
-    const mockUser: AuthUser = {
-      id: '1',
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
-      name: email.split('@')[0],
-      role: 'student',
-      grade: 11, // Default grade, in real app this would come from database
-    };
-    
-    setUser(mockUser);
-    localStorage.setItem('shiksha_user', JSON.stringify(mockUser));
+      password,
+    });
+
+    if (error) {
+      setIsLoading(false);
+      throw error;
+    }
+
     setIsLoading(false);
   };
 
   const signup = async (email: string, password: string, name: string, role: 'student' | 'teacher', grade?: 11 | 12, subject?: string) => {
     setIsLoading(true);
-    // Mock signup - simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
     
-    const newUser: AuthUser = {
-      id: Date.now().toString(),
+    const { data, error } = await supabase.auth.signUp({
       email,
-      name,
-      role,
-      ...(role === 'student' && { grade }),
-      ...(role === 'teacher' && { subject }),
-    };
-    
-    setUser(newUser);
-    localStorage.setItem('shiksha_user', JSON.stringify(newUser));
+      password,
+      options: {
+        data: {
+          name,
+          role,
+          ...(grade && { grade }),
+          ...(subject && { subject }),
+        },
+        emailRedirectTo: `${window.location.origin}/`,
+      },
+    });
+
+    if (error) {
+      setIsLoading(false);
+      throw error;
+    }
+
     setIsLoading(false);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('shiksha_user');
   };
 
-  // Check for existing user on mount
-  React.useEffect(() => {
-    const savedUser = localStorage.getItem('shiksha_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
+  // Handle auth state changes
+  useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          // Fetch user profile from our users table
+          const { data: userData } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (userData) {
+            setUser({
+              id: userData.id,
+              email: session.user.email || '',
+              name: userData.name || '',
+              role: (userData.role as 'student' | 'teacher') || 'student',
+              ...(userData.role === 'student' && { grade: 11 as 11 | 12 }), // Default grade
+            });
+          }
+        } else {
+          setUser(null);
+        }
+        setIsLoading(false);
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        // The auth state change listener will handle setting the user
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const value = {
