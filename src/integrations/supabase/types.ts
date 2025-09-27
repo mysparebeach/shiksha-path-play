@@ -14,6 +14,82 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          code: string
+          description: string
+          id: string
+          name: string
+          threshold: number
+          type: string
+        }
+        Insert: {
+          code: string
+          description: string
+          id?: string
+          name: string
+          threshold: number
+          type: string
+        }
+        Update: {
+          code?: string
+          description?: string
+          id?: string
+          name?: string
+          threshold?: number
+          type?: string
+        }
+        Relationships: []
+      }
+      attempts: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_correct: boolean
+          question_id: string | null
+          selected_choice: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_correct: boolean
+          question_id?: string | null
+          selected_choice: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_correct?: boolean
+          question_id?: string | null
+          selected_choice?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attempts_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboard"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       badges: {
         Row: {
           code: string | null
@@ -136,6 +212,101 @@ export type Database = {
           },
         ]
       }
+      curriculum_lessons: {
+        Row: {
+          content: Json | null
+          created_at: string | null
+          grade: number
+          id: string
+          is_active: boolean | null
+          lesson_description: string | null
+          lesson_title: string
+          lesson_type: string | null
+          order_sequence: number
+          subject: string
+          unit_number: number
+          unit_title: string
+          updated_at: string | null
+          xp_reward: number | null
+        }
+        Insert: {
+          content?: Json | null
+          created_at?: string | null
+          grade: number
+          id?: string
+          is_active?: boolean | null
+          lesson_description?: string | null
+          lesson_title: string
+          lesson_type?: string | null
+          order_sequence: number
+          subject: string
+          unit_number: number
+          unit_title: string
+          updated_at?: string | null
+          xp_reward?: number | null
+        }
+        Update: {
+          content?: Json | null
+          created_at?: string | null
+          grade?: number
+          id?: string
+          is_active?: boolean | null
+          lesson_description?: string | null
+          lesson_title?: string
+          lesson_type?: string | null
+          order_sequence?: number
+          subject?: string
+          unit_number?: number
+          unit_title?: string
+          updated_at?: string | null
+          xp_reward?: number | null
+        }
+        Relationships: []
+      }
+      lesson_questions: {
+        Row: {
+          choices: Json | null
+          correct_answer: string
+          created_at: string | null
+          explanation: string | null
+          id: string
+          lesson_id: string | null
+          marks: number | null
+          question_text: string
+          question_type: string | null
+        }
+        Insert: {
+          choices?: Json | null
+          correct_answer: string
+          created_at?: string | null
+          explanation?: string | null
+          id?: string
+          lesson_id?: string | null
+          marks?: number | null
+          question_text: string
+          question_type?: string | null
+        }
+        Update: {
+          choices?: Json | null
+          correct_answer?: string
+          created_at?: string | null
+          explanation?: string | null
+          id?: string
+          lesson_id?: string | null
+          marks?: number | null
+          question_text?: string
+          question_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_questions_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lessons: {
         Row: {
           asset_pack_path: string | null
@@ -172,6 +343,74 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          daily_goal: number
+          full_name: string | null
+          grade: string | null
+          id: string
+          role: string
+          streak: number
+          xp: number
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          daily_goal?: number
+          full_name?: string | null
+          grade?: string | null
+          id: string
+          role: string
+          streak?: number
+          xp?: number
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          daily_goal?: number
+          full_name?: string | null
+          grade?: string | null
+          id?: string
+          role?: string
+          streak?: number
+          xp?: number
+        }
+        Relationships: []
+      }
+      questions: {
+        Row: {
+          choices: Json
+          correct_choice: string
+          id: string
+          lesson_id: string | null
+          prompt: string
+        }
+        Insert: {
+          choices: Json
+          correct_choice: string
+          id?: string
+          lesson_id?: string | null
+          prompt: string
+        }
+        Update: {
+          choices?: Json
+          correct_choice?: string
+          id?: string
+          lesson_id?: string | null
+          prompt?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_badges: {
         Row: {
           awarded_at: string | null
@@ -204,6 +443,50 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_lesson_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          is_completed: boolean | null
+          is_unlocked: boolean | null
+          lesson_id: string | null
+          score: number | null
+          student_id: string
+          total_questions: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          is_completed?: boolean | null
+          is_unlocked?: boolean | null
+          lesson_id?: string | null
+          score?: number | null
+          student_id: string
+          total_questions?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          is_completed?: boolean | null
+          is_unlocked?: boolean | null
+          lesson_id?: string | null
+          score?: number | null
+          student_id?: string
+          total_questions?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_lesson_progress_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_lessons"
             referencedColumns: ["id"]
           },
         ]
@@ -280,6 +563,24 @@ export type Database = {
         }
         Relationships: []
       }
+      subjects: {
+        Row: {
+          grade: string
+          id: string
+          name: string
+        }
+        Insert: {
+          grade: string
+          id?: string
+          name: string
+        }
+        Update: {
+          grade?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       teachers: {
         Row: {
           created_at: string | null
@@ -303,6 +604,46 @@ export type Database = {
           subject?: string | null
         }
         Relationships: []
+      }
+      user_achievements: {
+        Row: {
+          achieved_at: string | null
+          achievement_id: string
+          user_id: string
+        }
+        Insert: {
+          achieved_at?: string | null
+          achievement_id: string
+          user_id: string
+        }
+        Update: {
+          achieved_at?: string | null
+          achievement_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_achievements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboard"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_achievements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       users: {
         Row: {
@@ -333,7 +674,27 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      leaderboard: {
+        Row: {
+          full_name: string | null
+          streak: number | null
+          user_id: string | null
+          xp: number | null
+        }
+        Insert: {
+          full_name?: string | null
+          streak?: number | null
+          user_id?: string | null
+          xp?: number | null
+        }
+        Update: {
+          full_name?: string | null
+          streak?: number | null
+          user_id?: string | null
+          xp?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
